@@ -9,11 +9,14 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: "#329EFF",
         tabBarInactiveTintColor: "#8E8E93",
+        tabBarStyle: {
+          height: 70,
+        },
         tabBarItemStyle: {
-          paddingTop: 8,
+          paddingTop: 2,
         },
         tabBarIconStyle: {
-          marginBottom: 6,
+          marginBottom: 4,
         },
       }}
     >
