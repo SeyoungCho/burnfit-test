@@ -1,4 +1,5 @@
 import Calendar from "@/components/calendar";
+import type { CalendarYearMonth } from "@/types/calendar";
 import React, { useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
@@ -8,15 +9,19 @@ const CalendarScreen = () => {
     []
   );
 
-  const [currentYearMonth, setCurrentYearMonth] = useState(normalizedToday);
+  const [currentYearMonth, setCurrentYearMonth] = useState<CalendarYearMonth>({
+    year: normalizedToday.getFullYear(),
+    month: normalizedToday.getMonth(),
+  });
+
   const [selectedDate, setSelectedDate] = useState<Date>(normalizedToday);
 
   const handleSelectDate = (date: Date) => {
     setSelectedDate(date);
   };
 
-  const handleMonthChange = (date: Date) => {
-    setCurrentYearMonth(date);
+  const handleMonthChange = (yearMonth: CalendarYearMonth) => {
+    setCurrentYearMonth(yearMonth);
   };
 
   return (

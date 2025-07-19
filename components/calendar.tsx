@@ -1,5 +1,6 @@
+import type { CalendarYearMonth, DayInfo } from "@/types/calendar";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import React, { useCallback, useMemo } from "react";
+import React, { useMemo } from "react";
 import {
   Dimensions,
   FlatList,
@@ -19,12 +20,6 @@ const CONTAINER_PADDING = 32;
 const COLUMNS = 7;
 const cellWidth =
   (screenWidth - CONTAINER_PADDING - CELL_MARGIN * 2 * COLUMNS) / COLUMNS;
-
-interface DayInfo {
-  day: number;
-  date: Date;
-  isCurrentMonth: boolean;
-}
 
 interface CalendarCellProps {
   item: DayType | DayInfo;
@@ -73,8 +68,8 @@ const CalendarCell = ({ item, isSelected, onPress }: CalendarCellProps) => {
 
 interface CalendarProps {
   onSelectDate: (date: Date) => void;
-  onMonthChange?: (date: Date) => void;
-  currentYearMonth: Date;
+  onMonthChange?: (yearMonth: CalendarYearMonth) => void;
+  currentYearMonth: CalendarYearMonth;
   selectedDate?: Date;
 }
 
@@ -84,71 +79,73 @@ const Calendar = ({
   currentYearMonth,
   selectedDate,
 }: CalendarProps) => {
-  const getDaysInMonth = useCallback(
-    (year: number, month: number): DayInfo[] => {
-      const firstDay = new Date(year, month, 1);
-      const lastDay = new Date(year, month + 1, 0);
-      const daysInMonth = lastDay.getDate();
-      const startDayOfWeek = firstDay.getDay();
-      const endDayOfWeek = lastDay.getDay();
+  const getDaysInMonth = (year: number, month: number): DayInfo[] => {
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startDayOfWeek = firstDay.getDay();
+    const endDayOfWeek = lastDay.getDay();
 
-      const days: DayInfo[] = [];
+    const days: DayInfo[] = [];
 
-      // 달력 첫째 주에 표기할 이전 월 날짜들 추가
-      const prevMonth = new Date(year, month - 1, 1);
-      const prevMonthLastDay = new Date(year, month, 0).getDate();
+    // 달력 첫째 주에 표기할 이전 월 날짜들 추가
+    const prevMonth = new Date(year, month - 1, 1);
+    const prevMonthLastDay = new Date(year, month, 0).getDate();
 
-      for (let i = 0; i < startDayOfWeek; i++) {
-        const day = prevMonthLastDay - (startDayOfWeek - i) + 1;
-        days.push({
-          day,
-          date: new Date(prevMonth.getFullYear(), prevMonth.getMonth(), day),
-          isCurrentMonth: false,
-        });
-      }
+    for (let i = 0; i < startDayOfWeek; i++) {
+      const day = prevMonthLastDay - (startDayOfWeek - i) + 1;
+      days.push({
+        day,
+        date: new Date(prevMonth.getFullYear(), prevMonth.getMonth(), day),
+        isCurrentMonth: false,
+      });
+    }
 
-      // 현재 월 날짜들 추가
-      for (let day = 1; day <= daysInMonth; day++) {
-        days.push({
-          day,
-          date: new Date(year, month, day),
-          isCurrentMonth: true,
-        });
-      }
+    // 현재 월 날짜들 추가
+    for (let day = 1; day <= daysInMonth; day++) {
+      days.push({
+        day,
+        date: new Date(year, month, day),
+        isCurrentMonth: true,
+      });
+    }
 
-      // 달력 마지막 주에 표기할 다음 월 날짜들 추가
-      const nextMonthDaysNeeded = endDayOfWeek === 6 ? 0 : 6 - endDayOfWeek;
-      const nextMonth = new Date(year, month + 1, 1);
+    // 달력 마지막 주에 표기할 다음 월 날짜들 추가
+    const nextMonthDaysNeeded = endDayOfWeek === 6 ? 0 : 6 - endDayOfWeek;
+    const nextMonth = new Date(year, month + 1, 1);
 
-      for (let day = 1; day <= nextMonthDaysNeeded; day++) {
-        days.push({
-          day,
-          date: new Date(nextMonth.getFullYear(), nextMonth.getMonth(), day),
-          isCurrentMonth: false,
-        });
-      }
+    for (let day = 1; day <= nextMonthDaysNeeded; day++) {
+      days.push({
+        day,
+        date: new Date(nextMonth.getFullYear(), nextMonth.getMonth(), day),
+        isCurrentMonth: false,
+      });
+    }
 
-      return days;
-    },
-    []
-  );
+    return days;
+  };
 
   const handlePrevMonth = () => {
-    const prevMonth = new Date(
-      currentYearMonth.getFullYear(),
-      currentYearMonth.getMonth() - 1,
-      1
-    );
-    onMonthChange?.(prevMonth);
+    const prevMonth =
+      currentYearMonth.month === 0 ? 11 : currentYearMonth.month - 1;
+    const prevYear =
+      prevMonth === 11 ? currentYearMonth.year - 1 : currentYearMonth.year;
+
+    onMonthChange?.({
+      year: prevYear,
+      month: prevMonth,
+    });
   };
 
   const handleNextMonth = () => {
-    const nextMonth = new Date(
-      currentYearMonth.getFullYear(),
-      currentYearMonth.getMonth() + 1,
-      1
-    );
-    onMonthChange?.(nextMonth);
+    const nextMonth = (currentYearMonth.month + 1) % 12;
+    const nextYear =
+      nextMonth === 0 ? currentYearMonth.year + 1 : currentYearMonth.year;
+
+    onMonthChange?.({
+      year: nextYear,
+      month: nextMonth,
+    });
   };
 
   const handleSelectDate = (dayInfo: DayInfo) => {
@@ -165,13 +162,9 @@ const Calendar = ({
     );
   };
 
-  const formatYearMonth = (date: Date): string => {
-    return `${date.getFullYear()}년 ${date.getMonth() + 1}월`;
-  };
-
   const daysInMonth = getDaysInMonth(
-    currentYearMonth.getFullYear(),
-    currentYearMonth.getMonth()
+    currentYearMonth.year,
+    currentYearMonth.month
   );
 
   const renderDay = ({ item }: { item: DayInfo }) => {
@@ -191,7 +184,7 @@ const Calendar = ({
           <Ionicons name="chevron-back" size={24} color="black" />
         </Pressable>
         <Text style={styles.yearMonthText}>
-          {formatYearMonth(currentYearMonth)}
+          {`${currentYearMonth.year}년 ${currentYearMonth.month + 1}월`}
         </Text>
         <Pressable style={styles.navButton} onPress={handleNextMonth}>
           <Ionicons name="chevron-forward" size={24} color="black" />
