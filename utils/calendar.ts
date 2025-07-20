@@ -46,6 +46,14 @@ export const getDaysInMonth = (year: number, month: number): DayInfo[] => {
   return days;
 };
 
+export const groupDaysByWeek = (days: DayInfo[]): DayInfo[][] => {
+  const weeks: DayInfo[][] = [];
+  for (let i = 0; i < days.length; i += 7) {
+    weeks.push(days.slice(i, i + 7));
+  }
+  return weeks;
+};
+
 export const getNextYearMonth = (currentYearMonth: CalendarYearMonth) => {
   const nextMonth = (currentYearMonth.month + 1) % 12;
   const nextYear =

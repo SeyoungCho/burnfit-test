@@ -7,6 +7,7 @@ import {
   getDaysInMonth,
   getNextYearMonth,
   getPrevYearMonth,
+  groupDaysByWeek,
 } from "@/utils/calendar";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import React, { useMemo } from "react";
@@ -114,10 +115,13 @@ const Calendar = ({
     );
   };
 
-  const daysInMonth = useMemo(
-    () => getDaysInMonth(currentYearMonth.year, currentYearMonth.month),
-    [currentYearMonth]
-  );
+  const monthWeeks = useMemo(() => {
+    const allDays = getDaysInMonth(
+      currentYearMonth.year,
+      currentYearMonth.month
+    );
+    return groupDaysByWeek(allDays);
+  }, [currentYearMonth]);
 
   const renderDay = ({ item }: { item: DayInfo }) => {
     return (
@@ -148,14 +152,17 @@ const Calendar = ({
           <CalendarCell key={day} item={day} />
         ))}
       </View>
-
-      <FlatList
-        data={daysInMonth}
-        renderItem={renderDay}
-        keyExtractor={(item, index) => `${item.date.getTime()}-${index}`}
-        numColumns={7}
-        scrollEnabled={false}
-      />
+      {monthWeeks.map((week, index) => (
+        <FlatList
+          key={index}
+          data={week}
+          renderItem={renderDay}
+          keyExtractor={(item, index) => `${item.date.getTime()}-${index}`}
+          numColumns={7}
+          scrollEnabled={false}
+          style={styles.weekContainer}
+        />
+      ))}
     </View>
   );
 };
@@ -220,5 +227,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "400",
     color: "#999",
+  },
+  weekContainer: {
+    flexGrow: 0,
   },
 });
