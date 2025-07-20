@@ -8,3 +8,5 @@ export interface CalendarYearMonth {
   year: number;
   month: number;
 }
+
+export type CalendarMode = "month" | "year";

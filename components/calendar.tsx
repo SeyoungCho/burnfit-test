@@ -1,4 +1,8 @@
-import type { CalendarYearMonth, DayInfo } from "@/types/calendar";
+import type {
+  CalendarMode,
+  CalendarYearMonth,
+  DayInfo,
+} from "@/types/calendar";
 import {
   getDaysInMonth,
   getNextYearMonth,
@@ -76,6 +80,7 @@ interface CalendarProps {
   onMonthChange?: (yearMonth: CalendarYearMonth) => void;
   currentYearMonth: CalendarYearMonth;
   selectedDate?: Date;
+  mode?: CalendarMode;
 }
 
 const Calendar = ({
@@ -83,6 +88,7 @@ const Calendar = ({
   onMonthChange,
   currentYearMonth,
   selectedDate,
+  mode = "month",
 }: CalendarProps) => {
   const handlePrevMonth = () => {
     const prevYearMonth = getPrevYearMonth(currentYearMonth);
