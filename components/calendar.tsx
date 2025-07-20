@@ -137,13 +137,13 @@ const Calendar = ({
     <View style={styles.container}>
       <View style={styles.header}>
         <Pressable style={styles.navButton} onPress={handlePrevMonth}>
-          <Ionicons name="chevron-back" size={24} color="black" />
+          <Ionicons name="chevron-back" size={24} color="#329EFF" />
         </Pressable>
         <Text style={styles.yearMonthText}>
           {`${currentYearMonth.year}년 ${currentYearMonth.month + 1}월`}
         </Text>
         <Pressable style={styles.navButton} onPress={handleNextMonth}>
-          <Ionicons name="chevron-forward" size={24} color="black" />
+          <Ionicons name="chevron-forward" size={24} color="#329EFF" />
         </Pressable>
       </View>
 
