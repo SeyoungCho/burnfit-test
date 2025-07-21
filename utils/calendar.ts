@@ -75,3 +75,25 @@ export const getPrevYearMonth = (currentYearMonth: CalendarYearMonth) => {
     month: prevMonth,
   };
 };
+
+export const getWeekIndexOfDate = (
+  date: Date,
+  yearMonth: CalendarYearMonth
+): number => {
+  // 해당 월 1일의 요일 계산
+  const firstDayOfWeek = new Date(yearMonth.year, yearMonth.month, 1).getDay();
+
+  // 몇일인지 추출
+  const dayOfMonth = date.getDate();
+
+  return Math.floor((dayOfMonth + firstDayOfWeek - 1) / 7);
+};
+
+export const isSelectedDateInCurrentMonth = (
+  date: Date,
+  yearMonth: CalendarYearMonth
+) => {
+  return (
+    date.getFullYear() === yearMonth.year && date.getMonth() === yearMonth.month
+  );
+};

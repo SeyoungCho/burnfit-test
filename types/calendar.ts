@@ -9,4 +9,4 @@ export interface CalendarYearMonth {
   month: number;
 }
 
-export type CalendarMode = "month" | "year";
+export type CalendarMode = "month" | "week";
