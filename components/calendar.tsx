@@ -12,7 +12,7 @@ import {
   isSelectedDateInCurrentMonth,
 } from "@/utils/calendar";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -105,13 +105,12 @@ const Calendar = ({
   });
   const calendarTranslateY = useSharedValue(0);
   const contentTranslateY = useSharedValue(0);
-  const viewModeRef = useRef<"week" | "month">("month");
 
   const handlePrevMonth = () => {
     const prevYearMonth = getPrevYearMonth(currentYearMonth);
     onMonthChange?.(prevYearMonth);
     // 월 캘린더에서 월 변경시, 선택된 날짜가 해당 월에 포함되어 있다면 주 인덱스를 계산하여 세팅, 없다면 0으로 초기화
-    if (viewModeRef.current === "month") {
+    if (mode === "month") {
       const isSelectedInCurrentMonth = isSelectedDateInCurrentMonth(
         selectedDate!,
         prevYearMonth
@@ -128,7 +127,7 @@ const Calendar = ({
     const nextYearMonth = getNextYearMonth(currentYearMonth);
     onMonthChange?.(nextYearMonth);
     // 월 캘린더에서 월 변경시, 선택된 날짜가 해당 월에 포함되어 있다면 주 인덱스를 계산하여 세팅, 없다면 0으로 초기화
-    if (viewModeRef.current === "month") {
+    if (mode === "month") {
       const isSelectedInCurrentMonth = isSelectedDateInCurrentMonth(
         selectedDate!,
         nextYearMonth
@@ -226,15 +225,6 @@ const Calendar = ({
   //   const allDays = getDaysInMonth(nextYearMonth.year, nextYearMonth.month);
   //   return groupDaysByWeek(allDays);
   // }, [currentYearMonth]);
-  const changeToWeekMode = () => {
-    viewModeRef.current = "week";
-    setMode("week"); // 이것도 함께 호출
-  };
-
-  const changeToMonthMode = () => {
-    viewModeRef.current = "month";
-    setMode("month");
-  };
 
   const renderDay = ({ item }: { item: DayInfo }) => {
     return (
@@ -271,7 +261,7 @@ const Calendar = ({
         { duration: 300 },
         (finished) => {
           if (finished) {
-            runOnJS(changeToWeekMode)();
+            runOnJS(setMode)("week");
           }
         }
       );
@@ -282,7 +272,7 @@ const Calendar = ({
         { duration: 300 },
         (finished) => {
           if (finished) {
-            runOnJS(changeToMonthMode)();
+            runOnJS(setMode)("month");
           }
         }
       );
@@ -310,10 +300,9 @@ const Calendar = ({
         <Pressable
           style={styles.navButton}
           onPress={() => {
-            if (viewModeRef.current === "month") {
+            if (mode === "month") {
               handlePrevMonth();
             } else {
-              console.log("prevWeek");
               handlePrevWeek();
             }
           }}
@@ -326,7 +315,7 @@ const Calendar = ({
         <Pressable
           style={styles.navButton}
           onPress={() => {
-            if (viewModeRef.current === "month") {
+            if (mode === "month") {
               handleNextMonth();
             } else {
               handleNextWeek();
