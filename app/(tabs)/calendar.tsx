@@ -1,7 +1,7 @@
 import Calendar from "@/components/calendar";
 import type { CalendarMode, CalendarYearMonth } from "@/types/calendar";
 import React, { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 const CalendarScreen = () => {
   const normalizedToday = useMemo(
@@ -34,27 +34,8 @@ const CalendarScreen = () => {
         onSelectDate={handleSelectDate}
         onMonthChange={handleMonthChange}
         mode={mode}
+        setMode={setMode}
       />
-      <Pressable
-        onPress={() => {
-          if (mode === "month") {
-            setMode("week");
-          } else {
-            setMode("month");
-          }
-        }}
-        style={{
-          marginInline: "auto",
-          padding: 12,
-          backgroundColor: "#329EFF",
-          borderRadius: 12,
-          marginBottom: 12,
-        }}
-      >
-        <Text style={{ color: "#fff" }}>
-          {mode === "month" ? "주간 보기" : "월간 보기"}
-        </Text>
-      </Pressable>
     </View>
   );
 };

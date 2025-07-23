@@ -12,15 +12,14 @@ import {
   isSelectedDateInCurrentMonth,
 } from "@/utils/calendar";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import React, { useMemo, useState } from "react";
-import {
-  Dimensions,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import React, { useMemo, useRef, useState } from "react";
+import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, {
+  runOnJS,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
 const DAYS = ["일", "월", "화", "수", "목", "금", "토"] as const;
 
@@ -32,6 +31,7 @@ const CONTAINER_PADDING = 32;
 const COLUMNS = 7;
 const cellWidth =
   (screenWidth - CONTAINER_PADDING - CELL_MARGIN * 2 * COLUMNS) / COLUMNS;
+const cellHeight = cellWidth + CELL_MARGIN * 2;
 
 interface CalendarCellProps {
   item: DayType | DayInfo;
@@ -84,6 +84,7 @@ interface CalendarProps {
   currentYearMonth: CalendarYearMonth;
   selectedDate?: Date;
   mode?: CalendarMode;
+  setMode: (mode: CalendarMode) => void;
 }
 
 const Calendar = ({
@@ -92,6 +93,7 @@ const Calendar = ({
   currentYearMonth,
   selectedDate,
   mode = "month",
+  setMode,
 }: CalendarProps) => {
   const [currentWeekIndex, setCurrentWeekIndex] = useState(() => {
     if (!selectedDate) return 0;
@@ -101,12 +103,15 @@ const Calendar = ({
     }
     return 0;
   });
+  const calendarTranslateY = useSharedValue(0);
+  const contentTranslateY = useSharedValue(0);
+  const viewModeRef = useRef<"week" | "month">("month");
 
   const handlePrevMonth = () => {
     const prevYearMonth = getPrevYearMonth(currentYearMonth);
     onMonthChange?.(prevYearMonth);
     // 월 캘린더에서 월 변경시, 선택된 날짜가 해당 월에 포함되어 있다면 주 인덱스를 계산하여 세팅, 없다면 0으로 초기화
-    if (mode === "month") {
+    if (viewModeRef.current === "month") {
       const isSelectedInCurrentMonth = isSelectedDateInCurrentMonth(
         selectedDate!,
         prevYearMonth
@@ -123,7 +128,7 @@ const Calendar = ({
     const nextYearMonth = getNextYearMonth(currentYearMonth);
     onMonthChange?.(nextYearMonth);
     // 월 캘린더에서 월 변경시, 선택된 날짜가 해당 월에 포함되어 있다면 주 인덱스를 계산하여 세팅, 없다면 0으로 초기화
-    if (mode === "month") {
+    if (viewModeRef.current === "month") {
       const isSelectedInCurrentMonth = isSelectedDateInCurrentMonth(
         selectedDate!,
         nextYearMonth
@@ -221,6 +226,15 @@ const Calendar = ({
   //   const allDays = getDaysInMonth(nextYearMonth.year, nextYearMonth.month);
   //   return groupDaysByWeek(allDays);
   // }, [currentYearMonth]);
+  const changeToWeekMode = () => {
+    viewModeRef.current = "week";
+    setMode("week"); // 이것도 함께 호출
+  };
+
+  const changeToMonthMode = () => {
+    viewModeRef.current = "month";
+    setMode("month");
+  };
 
   const renderDay = ({ item }: { item: DayInfo }) => {
     return (
@@ -232,15 +246,74 @@ const Calendar = ({
     );
   };
 
+  const playAnimation = (translationY: number) => {
+    "worklet";
+
+    const shouldChangeMode = Math.abs(translationY) > 15;
+    const targetMode = translationY < -15 ? "week" : "month";
+
+    if (!shouldChangeMode) {
+      // 모든 주를 원래 위치로 복원
+      calendarTranslateY.value = withTiming(0, { duration: 200 });
+      contentTranslateY.value = withTiming(0, { duration: 200 });
+      return;
+    }
+
+    if (targetMode === "week") {
+      // 마지막 애니메이션에 callback 추가
+      contentTranslateY.value = withTiming(
+        -cellHeight * (currentMonthWeeks.length - 1),
+        // 0,
+        { duration: 300 }
+      );
+      calendarTranslateY.value = withTiming(
+        -cellHeight * currentWeekIndex,
+        { duration: 300 },
+        (finished) => {
+          if (finished) {
+            runOnJS(changeToWeekMode)();
+          }
+        }
+      );
+    } else {
+      // 월 모드로 복원
+      calendarTranslateY.value = withTiming(
+        0,
+        { duration: 300 },
+        (finished) => {
+          if (finished) {
+            runOnJS(changeToMonthMode)();
+          }
+        }
+      );
+      contentTranslateY.value = withTiming(0, { duration: 300 });
+    }
+  };
+  const gesture = Gesture.Pan()
+    .onUpdate((e) => {
+      // 실시간으로 gesture에 따라 translate 값 업데이트
+      if (currentWeekIndex !== 0) {
+        calendarTranslateY.value =
+          calendarTranslateY.value + e.translationY / 100;
+      }
+      contentTranslateY.value = contentTranslateY.value + e.translationY / 80;
+      // ((currentMonthWeeks.length - 1) * cellWidth * e.translationY) / 100;
+    })
+    .onEnd((e) => {
+      // gesture가 끝나면 playAnimation 트리거
+      playAnimation(e.translationY);
+    });
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Pressable
           style={styles.navButton}
           onPress={() => {
-            if (mode === "month") {
+            if (viewModeRef.current === "month") {
               handlePrevMonth();
             } else {
+              console.log("prevWeek");
               handlePrevWeek();
             }
           }}
@@ -253,7 +326,7 @@ const Calendar = ({
         <Pressable
           style={styles.navButton}
           onPress={() => {
-            if (mode === "month") {
+            if (viewModeRef.current === "month") {
               handleNextMonth();
             } else {
               handleNextWeek();
@@ -269,41 +342,44 @@ const Calendar = ({
           <CalendarCell key={day} item={day} />
         ))}
       </View>
-      {mode === "week"
-        ? currentMonthWeeks.map((week, index) => {
-            const isCurrentWeek = index === currentWeekIndex;
-
-            if (!isCurrentWeek) return null;
-
-            return (
-              <FlatList
-                key={index}
-                data={week}
-                renderItem={renderDay}
-                keyExtractor={(item, index) =>
-                  `${item.date.getTime()}-${index}`
-                }
-                numColumns={7}
-                scrollEnabled={false}
-                style={styles.weekContainer}
-              />
-            );
-          })
-        : currentMonthWeeks.map((week, index) => {
-            return (
-              <FlatList
-                key={index}
-                data={week}
-                renderItem={renderDay}
-                keyExtractor={(item, index) =>
-                  `${item.date.getTime()}-${index}`
-                }
-                numColumns={7}
-                scrollEnabled={false}
-                style={styles.weekContainer}
-              />
-            );
-          })}
+      <GestureDetector gesture={gesture}>
+        <View>
+          <Animated.View
+            style={{
+              transform: [{ translateY: calendarTranslateY }],
+              zIndex: 10,
+            }}
+          >
+            {currentMonthWeeks.map((week, index) => {
+              // if (mode === "week") {
+              //   const isCurrentWeek = index === currentWeekIndex;
+              //   if (!isCurrentWeek) return null;
+              // }
+              return (
+                <Animated.FlatList
+                  key={index}
+                  data={week}
+                  renderItem={renderDay}
+                  keyExtractor={(item, index) =>
+                    `${item.date.getTime()}-${index}`
+                  }
+                  numColumns={7}
+                  scrollEnabled={false}
+                  style={styles.weekContainer}
+                />
+              );
+            })}
+          </Animated.View>
+          <Animated.View
+            style={{
+              transform: [{ translateY: contentTranslateY }],
+              backgroundColor: "white",
+              height: "100%",
+              zIndex: 20,
+            }}
+          ></Animated.View>
+        </View>
+      </GestureDetector>
     </View>
   );
 };
@@ -314,12 +390,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
+    paddingTop: 0,
+    backgroundColor: "#ffffff",
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
+    zIndex: 10,
+    backgroundColor: "#ffffff",
+    paddingBottom: 20,
   },
   navButton: {
     padding: 8,
@@ -330,7 +410,8 @@ const styles = StyleSheet.create({
   },
   daysHeader: {
     flexDirection: "row",
-    marginBottom: 10,
+    backgroundColor: "#ffffff",
+    zIndex: 10,
   },
   cellContainer: {
     width: cellWidth,
